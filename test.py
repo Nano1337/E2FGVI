@@ -26,6 +26,7 @@ parser.add_argument("--savefps", type=int, default=24)
 parser.add_argument("--set_size", action='store_true', default=False)
 parser.add_argument("--width", type=int)
 parser.add_argument("--height", type=int)
+parser.add_argument("--savepath", type=str)
 
 args = parser.parse_args()
 
@@ -33,7 +34,7 @@ ref_length = args.step  # ref_step
 num_ref = args.num_ref
 neighbor_stride = args.neighbor_stride
 default_fps = args.savefps
-
+savepath = args.savepath
 
 # sample reference frames from the whole video
 def get_ref_index(f, neighbor_ids, length):
@@ -180,7 +181,7 @@ def main_worker():
 
     # saving videos
     print('Saving videos...')
-    save_dir_name = 'results'
+    save_dir_name = savepath
     ext_name = '_results.mp4'
     save_base_name = args.video.split('/')[-1]
     save_name = save_base_name.replace(
