@@ -9,6 +9,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import torch
+import tracemalloc
 
 from core.utils import to_tensors
 
@@ -140,12 +141,17 @@ def main_worker():
     ]
     masks = to_tensors()(masks).unsqueeze(0)
     
+    tracemalloc.start()
+    print("Before loading images:", tracemalloc.get_traced_memory())
     # send all images and masks to VRAM all at once
     imgs, masks = imgs.to(device), masks.to(device)
     comp_frames = [None] * video_length
 
+    print("After loading images and before using model:", tracemalloc.get_traced_memory())
+
     # completing holes by e2fgvi
     print(f'Start test...')
+    
     for f in tqdm(range(0, video_length, neighbor_stride)):
         neighbor_ids = [
             i for i in range(max(0, f - neighbor_stride),
@@ -166,7 +172,11 @@ def main_worker():
             masked_imgs = torch.cat(
                 [masked_imgs, torch.flip(masked_imgs, [4])],
                 4)[:, :, :, :, :w + w_pad]
+            
+            print("model usage right before:", tracemalloc.get_traced_memory())
             pred_imgs, _ = model(masked_imgs, len(neighbor_ids))
+            print("mode usage right after:", tracemalloc.get_traced_memory())
+            
             pred_imgs = pred_imgs[:, :, :h, :w]
             pred_imgs = (pred_imgs + 1) / 2
             pred_imgs = pred_imgs.cpu().permute(0, 2, 3, 1).numpy() * 255
@@ -180,6 +190,9 @@ def main_worker():
                 else:
                     comp_frames[idx] = comp_frames[idx].astype(
                         np.float32) * 0.5 + img.astype(np.float32) * 0.5
+
+    print("after all model usage finished:", tracemalloc.get_traced_memory())
+    tracemalloc.stop()
 
     # saving videos
     print('Saving videos...')
