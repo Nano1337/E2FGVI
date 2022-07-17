@@ -141,14 +141,13 @@ def main_worker():
     ]
     masks = to_tensors()(masks).unsqueeze(0)
     
-    tracemalloc.start()
-    print("Before loading images:", tracemalloc.get_traced_memory())
+    print("Before loading images:", torch.cuda.max_memory_allocated(device))
     # send all images and masks to VRAM all at once
     imgs, masks = imgs.to(device), masks.to(device)
     comp_frames = [None] * video_length
 
-    print("After loading images and before using model:", tracemalloc.get_traced_memory())
-
+    print("After loading images and before using model:", torch.cuda.max_memory_allocated(device))
+  
     # completing holes by e2fgvi
     print(f'Start test...')
     
@@ -158,6 +157,7 @@ def main_worker():
                              min(video_length, f + neighbor_stride + 1))
         ]
         ref_ids = get_ref_index(f, neighbor_ids, video_length)
+        # check if this adds more memory?
         selected_imgs = imgs[:1, neighbor_ids + ref_ids, :, :, :]
         selected_masks = masks[:1, neighbor_ids + ref_ids, :, :, :]
         with torch.no_grad():
@@ -173,9 +173,9 @@ def main_worker():
                 [masked_imgs, torch.flip(masked_imgs, [4])],
                 4)[:, :, :, :, :w + w_pad]
             
-            print("model usage right before:", tracemalloc.get_traced_memory())
+            print("model usage right before:", torch.cuda.max_memory_allocated(device))
             pred_imgs, _ = model(masked_imgs, len(neighbor_ids))
-            print("mode usage right after:", tracemalloc.get_traced_memory())
+            print("mode usage right after:", torch.cuda.max_memory_allocated(device))
             
             pred_imgs = pred_imgs[:, :, :h, :w]
             pred_imgs = (pred_imgs + 1) / 2
@@ -191,7 +191,11 @@ def main_worker():
                     comp_frames[idx] = comp_frames[idx].astype(
                         np.float32) * 0.5 + img.astype(np.float32) * 0.5
 
-    print("after all model usage finished:", tracemalloc.get_traced_memory())
+    print("after all model usage finished:", torch.cuda.max_memory_allocated(device))
+
+    imgs, masks = imgs.to(device), masks.to(device)
+    
+    print("after delete images and masks:", torch.cuda.max_memory_allocated(device))
     tracemalloc.stop()
 
     # saving videos
