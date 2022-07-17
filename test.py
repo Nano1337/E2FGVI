@@ -139,6 +139,8 @@ def main_worker():
         np.expand_dims((np.array(m) != 0).astype(np.uint8), 2) for m in masks
     ]
     masks = to_tensors()(masks).unsqueeze(0)
+    
+    # send all images and masks to VRAM all at once
     imgs, masks = imgs.to(device), masks.to(device)
     comp_frames = [None] * video_length
 
@@ -191,6 +193,7 @@ def main_worker():
     save_path = os.path.join(save_dir_name, save_name)
     writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"),
                              default_fps, size)
+    # converts completed frames to video
     for f in range(video_length):
         comp = comp_frames[f].astype(np.uint8)
         writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
