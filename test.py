@@ -198,24 +198,26 @@ def main_worker():
     print("after delete images and masks:", torch.cuda.max_memory_allocated(device))
     tracemalloc.stop()
 
-    # saving videos
-    print('Saving videos...')
+    # # saving videos
+    # print('Saving videos...')
     save_dir_name = savepath
-    ext_name = '_results.mp4'
-    save_base_name = args.video.split('/')[-1]
-    save_name = save_base_name.replace(
-        '.mp4', ext_name) if args.use_mp4 else save_base_name + ext_name
-    if not os.path.exists(save_dir_name):
-        os.makedirs(save_dir_name)
-    save_path = os.path.join(save_dir_name, save_name)
-    writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"),
-                             default_fps, size)
-    # converts completed frames to video
-    for f in range(video_length):
-        comp = comp_frames[f].astype(np.uint8)
-        writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
-    writer.release()
-    print(f'Finish test! The result video is saved in: {save_path}.')
+    for i, frame in enumerate(comp_frames):
+      cv2.imwrite(os.path.join(save_dir_name, str(i).zfill(5) + ".png"), cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    # ext_name = '_results.mp4'
+    # save_base_name = args.video.split('/')[-1]
+    # save_name = save_base_name.replace(
+    #     '.mp4', ext_name) if args.use_mp4 else save_base_name + ext_name
+    # if not os.path.exists(save_dir_name):
+    #     os.makedirs(save_dir_name)
+    # save_path = os.path.join(save_dir_name, save_name)
+    # writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"),
+    #                          default_fps, size)
+    # # converts completed frames to video
+    # for f in range(video_length):
+    #     comp = comp_frames[f].astype(np.uint8)
+    #     writer.write(cv2.cvtColor(comp, cv2.COLOR_BGR2RGB))
+    # writer.release()
+    # print(f'Finish test! The result video is saved in: {save_path}.')
 
     # show results
     print('Let us enjoy the result!')
